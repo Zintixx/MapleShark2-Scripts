@@ -24,7 +24,7 @@ def decode_skin_color():
         add_int("Color1")
         add_int("Color2")
 
-def decode_ugc_data():
+def decode_ugc_data(): # CUgcItemLook
     with Node("UgcData"):
         add_long("Unknown")
         add_unicode_str("UUID")
@@ -38,10 +38,31 @@ def decode_ugc_data():
         add_unicode_str("UGC Url")
         add_byte("Unknown")
 
-def decode_sync_state():
-    with Node("SyncState", True):
+def decode_blueprint(): # BlueprintItemData
+    with Node("Blueprint"):
+        add_long("unknown")
+        add_int("Unknown")
+        add_int("Unknown")
+        add_int("Unknown")
+        add_long("unknown")
+        add_int("Unknown")
+        add_long("unknown")
+        add_long("unknown")
+        add_unicode_str("unknown")
+
+def decode_cube_item_info():
+    with Node("CubeItemInfo"):
+        add_int("ItemId")
+        add_long("ItemUid")
+        add_long("Unknown")
+        b = add_bool("IsUgc")
+        if b:
+            decode_ugc_data()
+
+def decode_state_sync():
+    with Node("StateSync", True):
         add_byte("state")
-        add_byte("Animation2") # Assert(n <= 178)
+        add_byte("subState") # Assert(n <= 178)
         flag = add_byte("Flag")
         if (flag & 1) == 1: ## bit-1
             add_int("Unknown")
@@ -76,6 +97,82 @@ def decode_sync_state():
             decode_coordF("Unknown")
         add_int("Unknown")
 
+def decode_item_stats(): # sub_00562910
+    add_bool("Unknown")
+    
+    with Node("Stats"): # this is actually a loop range(9)
+        with Node("Constant Stats"):
+            count = add_short("ConstantStatOptionCount")
+            for i in range(count):
+                decode_stat_option(i)
+            count = add_short("ConstantSpecialOptionCount")
+            for i in range(count):
+                decode_special_option(i)
+        add_int("Unknown")
+
+        with Node("Static Stats"):
+            count = add_short("StaticStatOptionCount")
+            for i in range(count):
+                decode_stat_option(i)
+            count = add_short("StaticSpecialOptionCount")
+            for i in range(count):
+                decode_special_option(i)
+        add_int("Unknown")
+
+        with Node("Random Stats"):
+            count = add_short("RandonStatOptionCount")
+            for i in range(count):
+                decode_stat_option(i)
+            count = add_short("RandomSpecialOptionCount")
+            for i in range(count):
+                decode_special_option(i)
+        add_int("Unknown")
+
+        with Node("Title Stats"):
+            count = add_short("TitleStatOptionCount")
+            for i in range(count):
+                decode_stat_option(j)
+            count = add_short("TitleSpecialOptionCount")
+            for i in range(count):
+                decode_special_option(i)
+        add_int("Unknown")
+
+        for i in range(5):
+            with Node("Empowerment Stats " + str(i)):
+                count = add_short("EmpowermentStatOptionCount")
+                for j in range(count):
+                    decode_stat_option(j)
+                count = add_short("EmpowermentSpecialOptionCount")
+                for j in range(count):
+                    decode_special_option(j)
+            add_int("Unknown")
+
+def decode_item_enchant(): # sub_0054C2B0
+    add_int("Enchants")
+    add_int("EnchantExp")
+    add_bool("EnchantBasedChargeExp")
+    add_long("Unknown")
+    add_int("Unknown")
+    add_int("Unknown")
+    add_bool("CanRepackage")
+    add_int("EnchantCharges")
+
+    with Node("EnchantStats"):
+        count = add_byte("EnchantStatCount")
+        for i in range(count):
+            decode_stat_option(i)
+
+def decode_item_limitbreak(): # sub_0066F520
+    add_int("LimitBreakLevel")
+    with Node("LimitBreakStatOption"):
+        count = add_int("LimitBreakStatOptionCount")
+        for i in range(count):
+            decode_stat_option(i)
+    with Node("LimitBreakSpecialOption"):
+        count = add_int("LimitBreakSpecialOptionCount")
+        for i in range(count):
+            decode_special_option(i)
+
 def decode_item(id):
     with Node("Item: " + str(id)):
         add_int("Amount")
@@ -101,83 +198,16 @@ def decode_item(id):
             add_field("Front Hair Position", 4 * 7)
         elif id / 100000 == 104:
             add_field("Cosmetic Position", 4 * 4)
-        add_byte("Unknown")
-        with Node("Stats"):
-            with Node("Constant Stats"):
-                count = add_short("ConstantBasicStatCount")
-                for i in range(count):
-                    decode_stat_option(i)
-                count = add_short("ConstantSpecialStatCount")
-                for i in range(count):
-                    decode_bonus_option(i)
-            add_int("Unknown")
-            with Node("Static Stats"):
-                count = add_short("StaticBasicStatCount")
-                for i in range(count):
-                    decode_stat_option(i)
-                count = add_short("StaticSpecialStatCount")
-                for i in range(count):
-                    decode_bonus_option(i)
-            add_int("Unknown")
-            with Node("Random Stats"):
-                count = add_short("RandonBasicStatCount")
-                for i in range(count):
-                    decode_stat_option(i)
-                count = add_short("RandomSpecialStatCount")
-                for i in range(count):
-                    decode_bonus_option(i)
-            add_int("Unknown")
-            with Node("Title Stats"):
-                count = add_short("TitleBasicStatCount")
-                for i in range(count):
-                    decode_stat_option(j)
-                count = add_short("TitleSpecialStatCount")
-                for i in range(count):
-                    decode_bonus_option(i)
-            add_int("Unknown")
-            for i in range(5):
-                with Node("Empowerment Stats " + str(i)):
-                    count = add_short("EmpowermentBasicStatCount")
-                    for j in range(count):
-                        decode_stat_option(j)
-                    count = add_short("EmpowermentSpecialStatCount")
-                    for j in range(count):
-                        decode_bonus_option(j)
-                add_int("Unknown")
-        # Sub
-        add_int("Enchants")
-        add_int("EnchantExp")
-        add_bool("EnchantBasedChargeExp")
-        add_long("Unknown+191")
-        add_int("Unknown+199")
-        add_int("Unknown+203")
-        add_bool("CanRepackage")
-        add_int("EnchantCharges")
-
-        with Node("EnchantStats"):
-            count = add_byte("EnchantStatCount")
-            for e in range(count):
-                add_int("StatType")
-                add_int("IntegerValue")
-                add_float("FloatValue")
-        # EndSub
-        #Sub
-        add_int("LimitBreakLevel")
-        with Node("LimitBreakBasicStat"):
-            count = add_int("LimitBreakBasicStatCount")
-            for i in range(count):
-                decode_stat_option(i)
-        with Node("LimitBreakSpecialStat"):
-            count = add_int("LimitBreakSpecialStatCount")
-            for i in range(count):
-                decode_bonus_option(i)
-        # EndSub
+        
+        decode_item_stats()
+        decode_item_enchant()
+        decode_item_limitbreak()
 
         #Testing UGC
         if id == 11400608 or id == 11500523 or id == 11600035:
             with Node("UGC", True):
                 decode_ugc_data()
-                add_field("Unknown", 50)
+                decode_blueprint()
 
         # Pet
         if id / 100000 == 600 or id / 100000 == 610 or id / 100000 == 611 or id / 100000 == 629:
@@ -238,19 +268,17 @@ def decode_item(id):
         add_long("???")
         add_unicode_str("Unknown")
 
-def decode_stat_option(index):
+def decode_stat_option(index): # StatOption
     with Node("StatOption " + str(index)):
         add_short("StatType")
         add_int("IntegerValue")
         add_float("FloatValue")
-    end_node(False)
 
-def decode_bonus_option(index):
-    with Node("BonusOption " + str(index)):
+def decode_special_option(index): # SpecialOption
+    with Node("SpecialOption " + str(index)):
         add_short("StatType")
         add_float("FloatValue")
         add_float("FloatValue")
-    end_node(False)
 
 def decode_player():
     with Node("PlayerInfo"):
@@ -415,7 +443,7 @@ def decode_maid():
     add_unicode_str("UnknownStr")
     add_unicode_str("UnknownStr")
 
-def decode_additional_effect():
+def decode_additional_effect1():
     with Node("additionalEffect", True):
         add_int("StartServerTick")
         add_int("EndServerTick")
@@ -441,3 +469,15 @@ def decode_guild_rank():
         add_byte("Index")
         add_unicode_str("Name")
         add_int("PermissionFlags")
+
+def decode_interface_text(): # sub_641140
+    with Node("StringInterface"):
+        b = add_bool("Unknown")
+        add_int("Unknown")
+        if b:
+            add_int("Unknown")
+            count = add_int("count")
+            for i in range(count):
+                add_unicode_str("UnknownStr")
+        else:
+            add_unicode_str("message")
